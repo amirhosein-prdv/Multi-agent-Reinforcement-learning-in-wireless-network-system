@@ -1,0 +1,11 @@
+{    
+    "learningrate":0.0005,
+    "eps": 0.9,
+    "batch_size": 32,
+    "gamma": 0.99,
+    "nepisodes": 500,
+    "nsteps": 200,
+    "DDPG_layer1_size": 512, 
+    "DDPG_layer2_size": 256,  
+    "cuda":0
+}
