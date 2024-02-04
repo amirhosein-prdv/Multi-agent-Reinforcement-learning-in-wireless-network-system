@@ -1,12 +1,9 @@
 import numpy as np
 from collections import OrderedDict
-import math
-import random
-import gym
-import torch.nn as nn
+
 import torch
-import torch.nn.functional as F
-from torch.distributions import Normal
+import torch.nn as nn
+
 
 # Expects tuples of (state, next_state, action, reward, done)
 class ReplayBuffer(object):

@@ -84,10 +84,6 @@ class DDPG(object):
             done = torch.FloatTensor( d).to(device)
             reward = torch.FloatTensor(r).to(device)
 
-            # Sample replay buffer for meta test
-            # x_val, _, _, _, _ = replay_buffer.sample(batch_size)
-            # state_val = torch.FloatTensor(x_val).to(device)
-
             # Compute the target Q value
             next_state_feature = self.actor_feature_target(next_state)
             target_Q = self.critic_target(next_state, self.actor_target(next_state_feature))
@@ -116,34 +112,6 @@ class DDPG(object):
                 # Optimize the actor
                 self.actor_optimizer.zero_grad()
                 self.actor_feature_optimizer.zero_grad()
-                # Part1 of Meta-test stage
-                # actor_loss.backward(retain_graph=True)
-                # self.hotplug.update(self.lr_actor)
-                # state_feature_val = self.actor_feature(state_val)
-                # policy_loss_val = self.critic(state_val, self.actor(state_feature_val))
-                # policy_loss_val = -policy_loss_val.mean()
-                # policy_loss_val = policy_loss_val
-
-                # Part2 of Meta-test stage
-                # loss_auxiliary.backward(create_graph=True)
-                # self.hotplug.update(self.lr_actor)
-                # state_feature_val_new = self.actor_feature(state_val)
-                # policy_loss_val_new = self.critic(state_val, self.actor(state_feature_val_new))
-                # policy_loss_val_new = -policy_loss_val_new.mean()
-                # policy_loss_val_new = policy_loss_val_new
-
-                # utility = policy_loss_val - policy_loss_val_new
-                # utility = torch.tanh(utility)
-                # loss_meta = -utility
-
-                # Meta optimization of auxilary network
-                # self.omega_optim.zero_grad()
-                # grad_omega = torch.autograd.grad(loss_meta, self.feature_critic.parameters())
-                # # print(grad_omega)
-                # for gradient, variable in zip(grad_omega, self.feature_critic.parameters()):
-                    # if variable.grad is not None:
-                    #     variable.grad.data = gradient
-                # self.omega_optim.step()
 
                 self.actor_optimizer.step()
                 self.actor_feature_optimizer.step()

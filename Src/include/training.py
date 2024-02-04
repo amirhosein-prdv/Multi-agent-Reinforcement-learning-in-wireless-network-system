@@ -43,7 +43,7 @@ class Training():
             nstep = 0
             flag = False
 
-            print(f'Training: epoch {e}/T_train ...')
+            print(f'Training: epoch {e}/{T_train} ...')
 
             while not flag and nstep <= maximum_steps:
                 nstep += 1
@@ -102,7 +102,7 @@ class Training():
             nstep_test = 0
             flag_test = False
 
-            print(f'Testing: epoch {e_test}/T_train ...')
+            print(f'Testing: \n\t epoch {e_test}/{T_test} ...')
 
             while  nstep_test <= maximum_steps:
                 nstep_test += 1
@@ -142,6 +142,6 @@ class Training():
             self.reward_mem_test.append(np.mean(self.TR_mem_test))
 
             # print('Objective_Function_Test= ', self.reward_mem_test, ';')
-            print('Objective function is ', np.mean(self.reward_mem_test))
+            print('\t eObjective function is ', np.mean(self.reward_mem_test))
 
         return self.reward_mem_test, self.TR_mem_test
