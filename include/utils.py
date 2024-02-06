@@ -33,12 +33,6 @@ class ReplayBuffer(object):
 
 		return np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
 
-def write_log(log, log_path):
-    f = open(log_path, mode='a')
-    f.write(str(log))
-    f.write('\n')
-    f.close()
-
 class Hot_Plug(object):
     def __init__(self, model):
         self.model = model
@@ -68,68 +62,17 @@ class Critic_Network(nn.Module):
         x = nn.functional.softplus(self.fc3(x))
         return torch.mean(x)
 
-def linear_interpolation(l, r, alpha):
-    return l + alpha * (r - l)
 
-def plot_results(path):
-    model_path_1 = '%s/evaluation_reward.npy' % (path)
-    plot_path = '%s/results.jpg' % (path)
+def sliding_mean(data_array, window=5):
+    data_array = np.array(data_array)
+    new_list = []
+    for i in range(len(data_array)):
+        indices = list(range(max(i - window + 1, 0),
+                                min(i + window + 1, len(data_array))))
+        avg = 0
+        for j in indices:
+            avg += data_array[j]
+        avg /= float(len(indices))
+        new_list.append(avg)
 
-    import numpy as np
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
-    def sliding_mean(data_array, window=5):
-        data_array = np.array(data_array)
-        new_list = []
-        for i in range(len(data_array)):
-            indices = list(range(max(i - window + 1, 0),
-                                 min(i + window + 1, len(data_array))))
-            avg = 0
-            for j in indices:
-                avg += data_array[j]
-            avg /= float(len(indices))
-            new_list.append(avg)
-
-        return np.array(new_list)
-
-    smooth_curve = True
-
-    def get_data(model_path):
-        average_reward_train = np.load(model_path)
-
-        if smooth_curve:
-            clean_statistics_train = sliding_mean(average_reward_train, window=30)
-        else:
-            clean_statistics_train = average_reward_train
-
-        return clean_statistics_train
-
-    model_path = []
-    model_path.append(model_path_1)
-    results_all = []
-    for file in model_path:
-        results_all.append(get_data(file))
-
-    for rel in results_all:
-        if smooth_curve:
-            results_tmp = rel.tolist()
-        else:
-            results_tmp = rel
-        frame_id = results_tmp.index(max(results_tmp))
-        print(frame_id)
-        print(max(results_tmp))
-        print('******************************')
-
-    plt.title('Learning curve')
-    plt.xlabel('Episode'), plt.ylabel('Average Reward'), plt.legend(loc='best')
-
-    plt.plot(results_all[0], color='#FFA500', label="exploration")
-
-    plt.tight_layout()
-    plt.legend()
-    # plt.show()
-    plt.savefig(plot_path)
-    plt.close('all')
-
+    return np.array(new_list)

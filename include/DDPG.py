@@ -79,10 +79,10 @@ class DDPG(object):
             # Sample replay buffer
             x, y, u, r, d = replay_buffer.sample(batch_size)
             state = torch.FloatTensor(x).to(device)
-            action = torch.FloatTensor(u).to(device)
             next_state = torch.FloatTensor(y).to(device)
-            done = torch.FloatTensor( d).to(device)
+            action = torch.FloatTensor(u).to(device)
             reward = torch.FloatTensor(r).to(device)
+            done = torch.FloatTensor(d).to(device)
 
             # Compute the target Q value
             next_state_feature = self.actor_feature_target(next_state)

@@ -2,32 +2,37 @@ import numpy as np
 from scipy import special
 import random
 
-np.random.seed(1373)
+np.random.seed(1379)
 
 class Environment:
     def __init__(self, scenario, state_dim, action_dim):
-        self.scenario = scenario
         self.e = np.e
         self.pi = np.pi
+        self.scenario = scenario
+
         # UL-DL users
         self.K = self.scenario.K_t + self.scenario.K_r
         self.L = self.scenario.L_t + self.scenario.L_r
+
         # Rician param.
         self.Rician_factor = 4
         self.variance = np.sqrt(1 / (self.Rician_factor + 1))
         self.mean = np.sqrt(self.Rician_factor / (self.Rician_factor + 1))
 
+        # user selection param.
         self.beta_UL = np.ones(self.L)
         self.beta_DL = np.ones(self.K)
+
         # state-action
         self.state_size = state_dim
         self.action_size = action_dim
         self.action_space = []
         for i in range(self.action_size):
             self.action_space.append(random.uniform(0, 1))
-        # generate DL symbol
+        
+        # generate DL symbols and channels
         self.s = self.gen_s()
-        # generate channels
+
         self.h = self.gen_h()
         self.g = self.gen_g()
         self.f = self.gen_f()
@@ -99,6 +104,7 @@ class Environment:
         g_s = self.g_s
         H = self.H
         gamma_UL = np.zeros([self.L])
+
         for l in range(self.scenario.L_r):
             num_r = 0
             den1_r = 0
@@ -176,7 +182,7 @@ class Environment:
             den3_t = den3_t * ((np.linalg.norm(u[:, l])) ** 2) * (self.scenario.sigma_H ** 2)
             den3_t = den3_t + (self.scenario.sigma_UL ** 2) * (np.linalg.norm(u[:, l])) ** 2
             gamma_UL[l] = num_t / (den2_t + den3_t)
-        return gamma_UL
+        return abs(gamma_UL)
 
     def cal_gamma_DL(self, Theta_r, Theta_t, w, rho):
         h = self.h
@@ -276,7 +282,7 @@ class Environment:
 
             gamma_DL[k] = num_t / (den1_t + den2_t + den3_t + self.scenario.sigma_DL)
 
-        return gamma_DL
+        return abs(gamma_DL)
 
     def cal_R_DL(self, gamma_DL):
         R_DL = np.zeros(self.K)
@@ -401,16 +407,14 @@ class Environment:
         phi_t = ((action[start:end] + 1) / 2)
         phi_t = np.reshape(phi_t, [self.scenario.R, self.scenario.Mr]) * 2 * self.pi
 
-        return w, u, rho, phi_r, phi_t
+        return phi_r, phi_t, rho, w, u
 
     def reset(self):  # Reset the states
         s = np.zeros((self.state_size))
         return s.reshape(-1)
 
     def step(self, phi_r, phi_t, rho, w, u):
-        h = self.h
-        g = self.g
-        f = self.f
+    
         done = False
 
         Theta_r, Theta_t = self.gen_Theta(phi_r, phi_t)
@@ -443,6 +447,7 @@ class Environment:
 
         TR = self.cal_TR(R_UL, R_DL)
         next_s = self.state_cal(TR)
+
         if check_w == 1:
             if check_rho == self.L and check_R_UL == self.L and check_R_DL == self.K:
                 reward = TR
@@ -451,4 +456,5 @@ class Environment:
                 reward = 0
         else:
             reward = 0
+        
         return next_s, reward, done
