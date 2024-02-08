@@ -2,8 +2,6 @@ import numpy as np
 from scipy import special
 import random
 
-np.random.seed(1379)
-
 class Environment:
     def __init__(self, scenario, state_dim, action_dim):
         self.e = np.e
@@ -39,8 +37,10 @@ class Environment:
         self.H = self.gen_H()
         self.g_s = self.gen_g_s()
         self.h_s = self.gen_h_s()
+    
+    def set_seed(self, seed):
+        np.random.seed(seed)
         
-
     # i.i.d. information symbol for the k'th DL user
     def gen_s(self):
         s = np.random.randn(self.K) + 1j * np.random.randn(self.K)
