@@ -38,8 +38,8 @@ class Environment:
         self.g_s = self.gen_g_s()
         self.h_s = self.gen_h_s()
     
-    def set_seed(self, seed):
-        np.random.seed(seed)
+    # def set_seed(self, seed):
+    #     np.random.seed(seed)
         
     # i.i.d. information symbol for the k'th DL user
     def gen_s(self):
@@ -114,9 +114,8 @@ class Environment:
                 Tg_s_r = np.matmul(Theta_r[r, :, :], g_s[:, l, r])
                 H_H_r = np.transpose(np.conjugate(H[:, :, r]))
                 num_r += np.matmul(H_H_r, Tg_s_r)
-                # print('num=', num.shape)
                 xx_r = np.transpose(np.conjugate(u[:, l]))
-                # print('xx=',xx.shape)
+
             num_r += g[:, l]
             num_r = (np.linalg.norm(num_r * xx_r)) ** 2 * rho[l]
             for ll in range(self.scenario.L_r):
@@ -153,9 +152,8 @@ class Environment:
                 Tg_s_t = np.matmul(Theta_t[r, :, :], g_s[:, l, r])
                 H_H_t = np.transpose(np.conjugate(H[:, :, r]))
                 num_t += np.matmul(H_H_t, Tg_s_t)
-                # print('num=', num.shape)
                 xx_t = np.transpose(np.conjugate(u[:, l]))
-                # print('xx=',xx.shape)
+
             num_t += g[:, l]
             num_t = (np.linalg.norm(num_t * xx_t)) ** 2 * rho[l]
             for ll in range(self.scenario.L_r):
@@ -182,7 +180,8 @@ class Environment:
             den3_t = den3_t * ((np.linalg.norm(u[:, l])) ** 2) * (self.scenario.sigma_H ** 2)
             den3_t = den3_t + (self.scenario.sigma_UL ** 2) * (np.linalg.norm(u[:, l])) ** 2
             gamma_UL[l] = num_t / (den2_t + den3_t)
-        return abs(gamma_UL)
+
+        return gamma_UL
 
     def cal_gamma_DL(self, Theta_r, Theta_t, w, rho):
         h = self.h
@@ -191,7 +190,7 @@ class Environment:
         h_s = self.h_s
         H = self.H
 
-        gamma_DL = np.zeros([self.K], dtype=complex)
+        gamma_DL = np.zeros([self.K])
         # Theta=Theta.reshape([self.scenario.Mr, self.scenario.R, self.scenario.Mr])
 
         for k in range(self.scenario.K_r):
@@ -220,21 +219,14 @@ class Environment:
                     h_k_HW_t = np.matmul(h_k_H_t, w[:, kk])
                     den1_r += (np.linalg.norm(h_k_HW_t)) ** 2
 
-            for l in range(self.scenario.L_r):
+            for l in range(self.L):
                 den2_r += ((np.linalg.norm(f[l, k])) ** 2) * rho[l]
+                temp = 0
                 for r in range(self.scenario.R):
                     Tg_r = np.matmul(Theta_r[r, :, :], g_s[:, l, r])
-                    hsk_r = h_s[:, r, k]
-                den3_r += np.matmul(hsk_r, Tg_r)
-                den3_r += ((np.linalg.norm(den3_r)) ** 2) * rho[l]
-
-            for l in range(self.scenario.L_r, self.scenario.L_r + self.scenario.L_t):
-                den2_r += ((np.linalg.norm(f[l, k])) ** 2) * rho[l]
-                for r in range(self.scenario.R):
-                    Tg_r = np.matmul(Theta_t[r, :, :], g_s[:, l, r])
-                    hsk_r = h_s[:, r, k]
-                den3_r += np.matmul(hsk_r, Tg_r)
-                den3_r += ((np.linalg.norm(den3_r)) ** 2) * rho[l]
+                    hsk_r = np.transpose(np.conjugate(h_s[:, r, k]))
+                    temp += np.matmul(hsk_r, Tg_r)
+                den3_r += ((np.linalg.norm(temp)) ** 2) * rho[l]
 
             gamma_DL[k] = num_r / (den1_r + den2_r + den3_r + self.scenario.sigma_DL)
 
@@ -264,25 +256,18 @@ class Environment:
                     h_k_HW_t = np.matmul(h_k_H_t, w[:, kk])
                     den1_t += (np.linalg.norm(h_k_HW_t)) ** 2
 
-            for l in range(self.scenario.L_r):
+            for l in range(self.L):
                 den2_t += ((np.linalg.norm(f[l, k])) ** 2) * rho[l]
+                temp = 0
                 for r in range(self.scenario.R):
                     Tg_t = np.matmul(Theta_r[r, :, :], g_s[:, l, r])
                     hsk_t = h_s[:, r, k]
-                den3_t += np.matmul(hsk_t, Tg_t)
-                den3_t += ((np.linalg.norm(den3_t)) ** 2) * rho[l]
-
-            for l in range(self.scenario.L_r, self.scenario.L_r + self.scenario.L_t):
-                den2_t += ((np.linalg.norm(f[l, k])) ** 2) * rho[l]
-                for r in range(self.scenario.R):
-                    Tg_t = np.matmul(Theta_t[r, :, :], g_s[:, l, r])
-                    hsk_t = h_s[:, r, k]
-                den3_t += np.matmul(hsk_t, Tg_t)
-                den3_t += ((np.linalg.norm(den3_t)) ** 2) * rho[l]
+                    temp += np.matmul(hsk_t, Tg_t)
+                den3_t += ((np.linalg.norm(temp)) ** 2) * rho[l]
 
             gamma_DL[k] = num_t / (den1_t + den2_t + den3_t + self.scenario.sigma_DL)
 
-        return abs(gamma_DL)
+        return gamma_DL
 
     def cal_R_DL(self, gamma_DL):
         R_DL = np.zeros(self.K)
@@ -323,12 +308,20 @@ class Environment:
         return TR
 
     def state_cal(self, TR):
-        h = self.h
-        g = self.g
-        f = self.f
-        h_s = self.h_s
-        g_s = self.g_s
-        H = self.H
+        # h = self.h
+        # g = self.g
+        # f = self.f
+        # H = self.H
+        # h_s = self.h_s
+        # g_s = self.g_s
+
+        h = self.gen_h()
+        g = self.gen_g()
+        f = self.gen_f()
+        H = self.gen_H()
+        g_s = self.gen_g_s()
+        h_s = self.gen_h_s()
+        
 
         state = np.zeros(self.state_size, dtype=complex)
 
@@ -359,7 +352,7 @@ class Environment:
         start = end
         end = end + 1
         state[start:end] = TR
-        return state
+        return abs(state)
 
     def action_cal(self, action):
         start = 0
@@ -375,7 +368,7 @@ class Environment:
             for k in range(self.K):
                 w[:, k] = w1[k] + 1j * w2[k]
 
-        w = np.reshape(w, [self.scenario.Nt, self.K]) * 0.7
+        w = np.reshape(w, [self.scenario.Nt, self.K]) * np.sqrt(self.scenario.P_T_BS/(2 * self.K  * self.scenario.Nt))
 
         start = end
         end = end + self.L * self.scenario.Nt
@@ -390,12 +383,12 @@ class Environment:
             for l in range(self.L):
                 u[:, l] = u1[l] + 1j * u2[l]
     
-        u = np.reshape(u, [self.scenario.Nt, self.L]) * 0.7
+        u = np.reshape(u, [self.scenario.Nt, self.L]) * np.sqrt(self.scenario.P_T_BS/(2 * self.L  * self.scenario.Nt))
 
         start = end
         end = end + self.L
         rho = action[start:end]
-        rho = ((action[start:end] + 1) / 2) * 0.009
+        rho = ((rho + 1) / 2) * 0.009
 
         start = end
         end = end + self.scenario.R * self.scenario.Mr
@@ -410,8 +403,17 @@ class Environment:
         return phi_r, phi_t, rho, w, u
 
     def reset(self):  # Reset the states
-        s = np.zeros((self.state_size))
-        return s.reshape(-1)
+
+        self.h = self.gen_h()
+        self.g = self.gen_g()
+        self.f = self.gen_f()
+        self.H = self.gen_H()
+        self.g_s = self.gen_g_s()
+        self.h_s = self.gen_h_s()
+
+        TR = 0
+        state = self.state_cal(TR)
+        return state
 
     def step(self, phi_r, phi_t, rho, w, u):
     
@@ -453,8 +455,13 @@ class Environment:
                 reward = TR
                 done = True
             else:
-                reward = 0
+                reward = -2 * TR
         else:
-            reward = 0
+            reward = -1 * TR
         
-        return next_s, reward, done
+        info = {'R_DL':R_DL,
+                'R_UL':R_UL,
+                'TR':TR
+                }
+        
+        return next_s, reward, done, info
