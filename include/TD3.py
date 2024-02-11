@@ -18,8 +18,7 @@ class ReplayBuffer:
     
     def add(self, transition):
         self.size +=1
-        # transiton is tuple of (state, action, reward, next_state, done)
-        self.buffer.append(transition)
+        self.buffer.append(transition) # (state, next_state, action, reward, done)
     
     def sample(self, batch_size):
         # delete 1/5th of the buffer when full
@@ -105,7 +104,6 @@ class TD3:
     def train(self, n_iter):
         
         for i in range(n_iter):
-            # Sample a batch of transitions from replay buffer:
             state, next_state, action_, reward, done = self.replay_buffer.sample(self.args.batch_size)
             state = torch.FloatTensor(state).to(device)
             action = torch.FloatTensor(action_).to(device)
@@ -113,7 +111,7 @@ class TD3:
             next_state = torch.FloatTensor(next_state).to(device)
             done = torch.FloatTensor(done).reshape((self.args.batch_size,1)).to(device)
             
-            # Select next action according to target policy:
+            # Select next action
             noise = torch.ones_like(torch.FloatTensor(action_)).data.normal_(0, self.args.policy_noise).to(device)
             noise = noise.clamp(-self.args.noise_clip, self.args.noise_clip)
             next_action = (self.actor_target(next_state) + noise)
@@ -139,7 +137,6 @@ class TD3:
             loss_Q2.backward()
             self.critic_2_optimizer.step()
             
-            # Delayed policy updates:
             if i % self.args.policy_delay == 0:
                 # Compute actor loss:
                 actor_loss = - self.critic_1(state, self.actor(state)).mean()

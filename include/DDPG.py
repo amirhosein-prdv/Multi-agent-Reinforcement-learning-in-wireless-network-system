@@ -7,28 +7,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 
-class OU_Noise(object):
-
-    def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.25):
-        self.mu = mu * np.ones(size)
-        self.theta = theta
-        self.sigma = sigma
-        self.seed = random.seed(seed)
-        self.reset()
-
-    def reset(self):
-        self.state = copy.copy(self.mu)
-
-    def sample(self):
-        dx = self.theta * (self.mu - self.state) + self.sigma * np.array([np.random.normal() for _ in range(len(self.state))])
-        self.state += dx
-        return self.state
-
-
 class Replay_buffer():
-    '''
-    Expects tuples of (state, next_state, action, reward, done)
-    '''
+    
+    # Expects tuples of 
     def __init__(self, max_size=1e6):
         self.buffer = []
         self.max_size = max_size
@@ -43,7 +24,7 @@ class Replay_buffer():
             self.buffer[int(self.ptr)] = data
             self.ptr = (self.ptr + 1) % self.max_size
         else:
-            self.buffer.append(data)
+            self.buffer.append(data) # (state, next_state, action, reward, done)
 
     def sample(self, batch_size):
         ind = np.random.randint(0, len(self.buffer), size=batch_size)
@@ -61,11 +42,6 @@ class Replay_buffer():
 
 
 class Actor(nn.Module):
-    """
-    The Actor model:
-    - Input: state observation
-    - Outputs: actions (continuous value).
-    """
     def __init__(self, state_dim, action_dim, hidden1):
         super(Actor, self).__init__()
         self.net = nn.Sequential(
@@ -83,11 +59,6 @@ class Actor(nn.Module):
         return self.net(state)
 
 class Critic(nn.Module):
-    """
-    The Critic model: 
-    - Input: state observation and an action
-    - Outputs: Q-value (expected total reward for the current state-action pair). 
-    """
     def __init__(self, state_dim, action_dim, hidden2):
         super(Critic, self).__init__()
         self.net = nn.Sequential(
@@ -106,17 +77,7 @@ class Critic(nn.Module):
 
 class DDPG(object):
     def __init__(self, state_dim, action_dim, args):
-        """
-        Initializes the DDPG agent. 
-        Takes three arguments:
-               state_dim which is the dimensionality of the state space, 
-               action_dim which is the dimensionality of the action space, and 
-               max_action which is the maximum value an action can take. 
-        
-        Creates a replay buffer, an actor-critic  networks and their corresponding target networks. 
-        It also initializes the optimizer for both actor and critic networks alog with 
-        counters to track the number of training iterations.
-        """
+
         self.args = args
         
         self.replay_buffer = Replay_buffer()
@@ -142,22 +103,6 @@ class DDPG(object):
 
 
     def train(self, update_iteration=50):
-        """
-        updates the actor and critic networks using a batch of samples from the replay buffer. 
-        For each sample in the batch, it computes the target Q value using the target critic network and the target actor network. 
-        It then computes the current Q value 
-        using the critic network and the action taken by the actor network. 
-        
-        It computes the critic loss as the mean squared error between the target Q value and the current Q value, and 
-        updates the critic network using gradient descent. 
-        
-        It then computes the actor loss as the negative mean Q value using the critic network and the actor network, and 
-        updates the actor network using gradient ascent. 
-        
-        Finally, it updates the target networks using 
-        soft updates, where a small fraction of the actor and critic network weights are transferred to their target counterparts. 
-        This process is repeated for a fixed number of iterations.
-        """
 
         for it in range(update_iteration):
             # For each Sample in replay buffer batch
@@ -183,7 +128,7 @@ class DDPG(object):
             critic_loss.backward()
             self.critic_optimizer.step()
 
-            # Compute actor loss as the negative mean Q value using the critic network and the actor network
+            # Compute actor loss
             actor_loss = -self.critic(state, self.actor(state)).mean()            
 
             # Optimize the actor
