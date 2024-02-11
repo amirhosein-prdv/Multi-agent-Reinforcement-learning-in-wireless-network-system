@@ -17,7 +17,7 @@ class ReplayBuffer():
         self.reward_memory = np.zeros(self.mem_size)
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool)
 
-    def store_transition(self, state, state_, action, reward, done):
+    def push(self, state, state_, action, reward, done):
         index = self.mem_cntr % self.mem_size
 
         self.state_memory[index] = state
@@ -28,7 +28,7 @@ class ReplayBuffer():
 
         self.mem_cntr += 1
 
-    def sample_buffer(self, batch_size):
+    def sample(self, batch_size):
         max_mem = min(self.mem_cntr, self.mem_size)
 
         batch = np.random.choice(max_mem, batch_size)
@@ -51,7 +51,7 @@ class Actor(nn.Module):
         self.action_dim = action_dim
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, 'SAC_'+name)
         self.max_action = max_action
         self.reparam_noise = 1e-6
 
@@ -110,7 +110,7 @@ class Critic(nn.Module):
         self.action_dim = action_dim
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, 'SAC_'+name)
 
         self.fc1 = nn.Linear(self.state_dim+action_dim, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
@@ -145,7 +145,7 @@ class ValueNetwork(nn.Module):
         self.fc2_dims = hidden_dims[1]
         self.name = name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, 'SAC_'+name)
 
         self.fc1 = nn.Linear(self.state_dim, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
@@ -178,7 +178,7 @@ class SAC():
     def __init__(self, state_dim, action_dim, max_action, args):
         self.args = args
 
-        self.memory = ReplayBuffer(self.args.buffer_size, state_dim, action_dim)
+        self.replay_buffer = ReplayBuffer(self.args.buffer_size, state_dim, action_dim)
 
         self.actor = Actor(state_dim, action_dim, max_action, self.args.actor_hidden, self.args.actor_lr,\
                             name='actor', chkpt_dir=self.args.model_path)
@@ -202,8 +202,6 @@ class SAC():
 
         return actions.cpu().detach().numpy()[0]
 
-    def remember(self, state, new_state, action, reward, done):
-        self.memory.store_transition(state, new_state, action, reward, done)
 
     def update_network_parameters(self, tau=None):
         if tau is None:
@@ -224,10 +222,10 @@ class SAC():
     
 
     def train(self):
-        if self.memory.mem_cntr < self.args.batch_size:
+        if self.replay_buffer.mem_cntr < self.args.batch_size:
             return
 
-        state, new_state, action, reward, done = self.memory.sample_buffer(self.args.batch_size)
+        state, new_state, action, reward, done = self.replay_buffer.sample(self.args.batch_size)
 
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
@@ -283,7 +281,6 @@ class SAC():
 
 
     def save(self):
-        print('.... saving models ....')
         self.actor.save_checkpoint()
         self.value.save_checkpoint()
         self.target_value.save_checkpoint()
